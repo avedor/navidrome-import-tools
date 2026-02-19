@@ -4,6 +4,10 @@ import os
 import sqlite3
 from collections import defaultdict
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Path to your Navidrome SQLite database file
 DB_PATH = os.getenv("DATABASE_PATH", "navidrome.db")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", ".")
@@ -227,7 +231,7 @@ def generate_m3u_from_db(
     try:
         # Open database connection
         print(f"Opening database: {DB_PATH}", flush=True)
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
         print("Database connected successfully", flush=True)
 
         # Load library into memory for fast searching
@@ -407,7 +411,7 @@ def main():
     if args.command == "list":
         conn = None
         try:
-            conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+            conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
             list_songs(conn)
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
