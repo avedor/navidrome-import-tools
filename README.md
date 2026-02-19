@@ -175,17 +175,17 @@ Edit `.env` with your credentials. See `.env.example` for all available variable
 ### Typical Workflow
 
 ```bash
-# 1. Fetch Spotify playlist or liked songs
+# 1a. Generate M3U directly from a Spotify playlist URL (recommended)
+python scripts/spoti_playlist_to_m3u.py generate --spotify "https://open.spotify.com/playlist/ID" my_playlist.m3u
+
+# 1b. Or fetch first, then generate from JSON
 python scripts/fetch_spotify_playlist.py
-python scripts/fetch_spotify_liked.py
+python scripts/spoti_playlist_to_m3u.py generate --json playlist_tracks.json "My Playlist" my_playlist.m3u
 
-# 2. Generate M3U playlist from fetched data
-python scripts/spoti_playlist_to_m3u.py generate "My Playlist" output/playlist_tracks.json my_playlist.m3u
-
-# 3. Scan MusicBrainz for album IDs (needed for Lidarr)
+# 2. Scan MusicBrainz for album IDs (needed for Lidarr)
 python scripts/process_spotify_mb.py
 
-# 4. Send albums to Lidarr
+# 3. Send albums to Lidarr
 python scripts/mb_lidarr_sync.py output/lidarr_mb_releasegroups.json
 ```
 
@@ -219,20 +219,25 @@ python scripts/fetch_spotify_liked.py
 
 #### `spoti_playlist_to_m3u.py`
 
-Converts Spotify playlist JSON into M3U playlists by matching tracks against your Navidrome database.
+Generates M3U playlists by matching Spotify tracks against your Navidrome database. Supports fetching directly from the Spotify API or using a pre-fetched JSON file.
 
 ```bash
 # List sample songs from your Navidrome database
 python scripts/spoti_playlist_to_m3u.py list
 
-# Generate an M3U playlist (in-memory mode, faster)
-python scripts/spoti_playlist_to_m3u.py generate "Playlist Name" playlist_tracks.json output.m3u
+# Generate from a Spotify playlist URL (fetches tracks automatically)
+python scripts/spoti_playlist_to_m3u.py generate --spotify "https://open.spotify.com/playlist/ID" output.m3u
 
-# Generate with direct database queries (lower memory usage)
-python scripts/spoti_playlist_to_m3u.py generate "Playlist Name" playlist_tracks.json output.m3u --no-memory
+# Generate from a pre-fetched JSON file
+python scripts/spoti_playlist_to_m3u.py generate --json playlist_tracks.json "Playlist Name" output.m3u
+
+# Use direct database queries instead of in-memory search (lower memory usage)
+python scripts/spoti_playlist_to_m3u.py generate --spotify "https://open.spotify.com/playlist/ID" output.m3u --no-memory
 ```
 
-**Requires:** `DATABASE_PATH`, `OUTPUT_DIR`
+`--spotify` and `--json` are mutually exclusive (one is required). When using `--spotify`, the playlist name is auto-fetched from the Spotify API. An optional `playlist_name` argument can override it.
+
+**Requires:** `DATABASE_PATH`, `OUTPUT_DIR`. Additionally `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI` when using `--spotify`.
 
 **Outputs:** `{name}.m3u` playlist file, `{name}_failed_matches.json` for unmatched tracks
 
@@ -287,6 +292,7 @@ navidrome-import-tools/
 ├── README-Docker.md         # Docker-specific documentation
 ├── .env.example             # Environment variables template
 ├── scripts/                 # Core processing scripts
+│   ├── spotify_client.py            # Shared Spotify API client utilities
 │   ├── fetch_spotify_playlist.py    # Fetch Spotify playlist data
 │   ├── fetch_spotify_liked.py       # Fetch liked songs
 │   ├── spoti_playlist_to_m3u.py     # M3U generation with in-memory DB
